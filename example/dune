@@ -1,0 +1,16 @@
+(executables
+ (names index)
+ (modes js)
+ (link_flags
+  (:standard -no-check-prims))
+ (libraries brr monaco require))
+
+(rule
+ (targets index.js)
+ (deps index.bc.js)
+ (action
+  (run cp %{deps} %{targets})))
+
+(alias
+ (name app)
+ (deps index.js index.html))

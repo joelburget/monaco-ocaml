@@ -1,0 +1,4 @@
+(library
+ (name require)
+ (public_name require)
+ (libraries brr))

@@ -3,7 +3,7 @@
  (modes js)
  (link_flags
   (:standard -no-check-prims))
- (libraries brr monaco require))
+ (libraries brr monaco monarch require))
 
 (rule
  (targets index.js)

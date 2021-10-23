@@ -1,11 +1,30 @@
-type bracket =
-  { close : string
-  ; open_ : string
-  ; token : string
-  }
+module Helpers = Helpers
+open Helpers
 
-(* TODO *)
-type regex = string
+module Bracket = struct
+  type t =
+    { close : string
+    ; open' : string
+    ; token : string
+    }
+
+  let to_jv { close; open'; token } =
+    Jv.obj
+      [| "close", Jv.of_string close
+       ; "open", Jv.of_string open'
+       ; "token", Jv.of_string token
+      |]
+  ;;
+end
+
+module Regex = struct
+  type t = string
+
+  let to_jv s =
+    let regexp = Jv.get Jv.global "RegExp" in
+    Jv.apply regexp [| Jv.of_string s |]
+  ;;
+end
 
 module Language_action = struct
   type t =
@@ -37,38 +56,76 @@ module Language_action = struct
     Expanded
       { group; cases; token; next; switch_to; go_back; bracket; next_embedded; log }
   ;;
+
+  let rec to_jv = function
+    | Short name -> Jv.of_string name
+    | Expanded
+        { group; cases; token; next; switch_to; go_back; bracket; next_embedded; log } ->
+      let obj = Jv.obj [||] in
+      set_opt_list ~f:to_jv obj "group" group;
+      set_opt_obj ~f:(fun (k, v) -> k, to_jv v) obj "cases" cases;
+      set_opt_str obj "token" token;
+      set_opt_str obj "next" next;
+      set_opt_str obj "switchTo" switch_to;
+      set_opt_int obj "goBack" go_back;
+      set_opt_str obj "bracket" bracket;
+      set_opt_str obj "nextEmbedded" next_embedded;
+      set_opt_str obj "log" log;
+      obj
+  ;;
 end
 
 module Language_rule = struct
   type t =
-    { regex : (string, regex) Either.t option
+    { regex : (string, Regex.t) Either.t option
     ; action : Language_action.t option
-    ; include_ : string option
+    ; include' : string option
     }
 
-  let mk ?regex ?action ?include_ () = { regex; action; include_ }
+  let mk ?regex ?action ?include' () = { regex; action; include' }
+
+  let to_jv { regex; action; include' } =
+    let obj = Jv.obj [||] in
+    set_opt
+      ~f:(function
+        | Either.Left str -> Jv.of_string str | Right regex -> Regex.to_jv regex)
+      obj
+      "regex"
+      regex;
+    set_opt ~f:Language_action.to_jv obj "action" action;
+    set_opt_str obj "include" include';
+    obj
+  ;;
 end
 
-(* TODO: indexable other keys, includeL *)
+(* TODO: indexable other keys, includeLF *)
 type t =
-  { brackets : bracket list
-  ; default_token : string
-  ; ignore_case : bool
-  ; start : string
+  { definitions : (string * Jv.t) list
+  ; brackets : Bracket.t list option
+  ; default_token : string option
+  ; ignore_case : bool option
+  ; start : string option
   ; tokenizer : (string * Language_rule.t list) list
   }
 
-let mk
-    ?(brackets = [])
-    ?(default_token = "source")
-    ?(ignore_case = false)
-    ?start
+let mk ?(definitions = []) ?brackets ?default_token ?ignore_case ?start tokenizer =
+  { definitions; brackets; default_token; ignore_case; start; tokenizer }
+;;
+
+let to_jv { definitions; brackets; default_token; ignore_case; start; tokenizer } =
+  let tokenizer =
     tokenizer
-  =
-  let start =
-    match start with None -> tokenizer |> List.hd |> fst | Some start -> start
+    |> Array.of_list
+    |> Array.map (fun (k, v) -> k, Jv.of_list Language_rule.to_jv v)
+    |> Jv.obj
   in
-  { brackets; default_token; ignore_case; start; tokenizer }
+  let obj_fields = ("tokenizer", tokenizer) :: definitions in
+  let obj = Jv.obj (Array.of_list obj_fields) in
+  set_opt_list ~f:Bracket.to_jv obj "brackets" brackets;
+  set_opt_str obj "defaultToken" default_token;
+  set_opt_bool obj "ignoreCase" ignore_case;
+  set_opt_str obj "start" start;
+  obj
 ;;
 
 let example1 =
@@ -90,8 +147,102 @@ let example1 =
 
 let example2 =
   mk
+    ~definitions:
+      [ ( "keywords"
+        , Jv.of_list
+            Jv.of_string
+            [ "abstract"
+            ; "continue"
+            ; "for"
+            ; "new"
+            ; "switch"
+            ; "assert"
+            ; "goto"
+            ; "do"
+            ; "if"
+            ; "private"
+            ; "this"
+            ; "break"
+            ; "protected"
+            ; "throw"
+            ; "else"
+            ; "public"
+            ; "enum"
+            ; "return"
+            ; "catch"
+            ; "try"
+            ; "interface"
+            ; "static"
+            ; "class"
+            ; "finally"
+            ; "const"
+            ; "super"
+            ; "while"
+            ; "true"
+            ; "false"
+            ] )
+      ; ( "typeKeywords"
+        , Jv.of_list
+            Jv.of_string
+            [ "boolean"
+            ; "double"
+            ; "byte"
+            ; "int"
+            ; "short"
+            ; "char"
+            ; "void"
+            ; "long"
+            ; "float"
+            ] )
+      ; ( "operators"
+        , Jv.of_list
+            Jv.of_string
+            [ "="
+            ; ">"
+            ; "<"
+            ; "!"
+            ; "~"
+            ; "?"
+            ; ":"
+            ; "=="
+            ; "<="
+            ; ">="
+            ; "!="
+            ; "&&"
+            ; "||"
+            ; "++"
+            ; "--"
+            ; "+"
+            ; "-"
+            ; "*"
+            ; "/"
+            ; "&"
+            ; "|"
+            ; "^"
+            ; "%"
+            ; "<<"
+            ; ">>"
+            ; ">>>"
+            ; "+="
+            ; "-="
+            ; "*="
+            ; "/="
+            ; "&="
+            ; "|="
+            ; "^="
+            ; "%="
+            ; "<<="
+            ; ">>="
+            ; ">>>="
+            ] )
+      ; "symbols", Regex.to_jv {|[=><!~?:&|+\-*\/\^%]+|}
+      ; ( "escapes"
+        , Regex.to_jv
+            {|\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})|} )
+      ]
     [ ( "root"
-      , [ Language_rule.mk
+      , [ (* identifiers and keywords *)
+          Language_rule.mk
             ~regex:(Right {|[a-z_$][\w$]*|})
             ~action:
               (Language_action.mk_expanded
@@ -106,8 +257,23 @@ let example2 =
             ~regex:(Right {|[A-Z][\w\$]*|})
             ~action:(Short "type.identifier")
             ()
-        ; Language_rule.mk ~include_:"@whitespace" ()
+        ; (* whitespace *)
+          Language_rule.mk ~include':"@whitespace" ()
+        ; (* delimiters and operators *)
+          Language_rule.mk ~regex:(Right {|[{}()\[\]]|}) ~action:(Short "@brackets") ()
         ; Language_rule.mk
+            ~regex:(Right {|[<>](?!@symbols)|})
+            ~action:(Short "@brackets")
+            ()
+        ; Language_rule.mk
+            ~regex:(Right {|@symbols|})
+            ~action:
+              (Language_action.mk_expanded
+                 ~cases:[ "@operators", Short "operator"; "@default", Short "" ]
+                 ())
+            ()
+        ; (* annotations *)
+          Language_rule.mk
             ~regex:(Right {|@\s*[a-zA-Z_\$][\w\$]*|})
             ~action:
               (Language_action.mk_expanded
@@ -115,6 +281,36 @@ let example2 =
                  ~log:"annotation token: $0"
                  ())
             ()
+        ; (* numbers *)
+          Language_rule.mk
+            ~regex:(Right {|\d*\.\d+([eE][\-+]?\d+)?|})
+            ~action:(Short "number.float")
+            ()
+        ; Language_rule.mk
+            ~regex:(Right {|0[xX][0-9a-fA-F]+|})
+            ~action:(Short "number.hex")
+            ()
+        ; Language_rule.mk ~regex:(Right {|\d+|}) ~action:(Short "number") ()
+        ; (* delimiter: after number because of .\d floats *)
+          Language_rule.mk ~regex:(Right {|[;,.]|}) ~action:(Short "delimiter") ()
+        ; (* strings *)
+          Language_rule.mk
+            ~regex:(Right {|"([^"\\]|\\.)*$|})
+            ~action:(Short "string.invalid")
+            ()
+        ; Language_rule.mk
+            ~regex:(Right {|"|})
+            ~action:
+              (Language_action.mk_expanded
+                 ~token:"string.quote"
+                 ~bracket:"@open"
+                 ~next:"@string"
+                 ())
+            ()
+        ; (* characters *)
+          Language_rule.mk ~regex:(Right {|'[^\\']'|}) ~action:(Short "string") ()
+        ; Language_rule.mk ~regex:(Right {|(')(@escapes)(')|}) ~action:(Short "string") ()
+        ; Language_rule.mk ~regex:(Right {|'|}) ~action:(Short "string.invalid") ()
         ] )
     ; ( "comment"
       , [ Language_rule.mk ~regex:(Right {|[^/*]+|}) ~action:(Short "comment") ()
@@ -129,10 +325,10 @@ let example2 =
         ; Language_rule.mk ~regex:(Right {|[/*]|}) ~action:(Short "comment") ()
         ] )
     ; ( "string"
-      , [ Language_rule.mk ~regex:(Right {|[^\"]+|}) ~action:(Short "string") ()
+      , [ Language_rule.mk ~regex:(Right {|[^\\"]+|}) ~action:(Short "string") ()
         ; Language_rule.mk ~regex:(Right {|@escapes|}) ~action:(Short "string.escape") ()
         ; Language_rule.mk
-            ~regex:(Right {|/\./|})
+            ~regex:(Right {|\\.|})
             ~action:(Short "string.escape.invalid")
             ()
         ; Language_rule.mk
@@ -148,10 +344,10 @@ let example2 =
     ; ( "whitespace"
       , [ Language_rule.mk ~regex:(Right {|[ \t\r\n]+|}) ~action:(Short "white") ()
         ; Language_rule.mk
-            ~regex:(Right {|\\*|})
+            ~regex:(Right {|/*|})
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@comment" ())
             ()
-        ; Language_rule.mk ~regex:(Right {|\\/.*$|}) ~action:(Short "comment") ()
+        ; Language_rule.mk ~regex:(Right {|//.*$|}) ~action:(Short "comment") ()
         ] )
     ]
 ;;

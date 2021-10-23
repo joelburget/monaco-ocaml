@@ -27,3 +27,11 @@
  (depends
   (brr
    (>= 0.0.1))))
+
+(package
+ (name monarch)
+ (synopsis "Bindings for Microsoft's Monarch syntax highlighter library")
+ (description "TODO")
+ (depends
+  (brr
+   (>= 0.0.1))))

@@ -39,6 +39,39 @@ module Completion_item_kind = struct
     | User
     | Issue
     | Snippet
+
+  let to_int = function
+    | Method -> 0
+    | Function -> 1
+    | Constructor -> 2
+    | Field -> 3
+    | Variable -> 4
+    | Class -> 5
+    | Struct -> 6
+    | Interface -> 7
+    | Module -> 8
+    | Property -> 9
+    | Event -> 10
+    | Operator -> 11
+    | Unit -> 12
+    | Value -> 13
+    | Constant -> 14
+    | Enum -> 15
+    | EnumMember -> 16
+    | Keyword -> 17
+    | Text -> 18
+    | Color -> 19
+    | File -> 20
+    | Reference -> 21
+    | Customcolor -> 22
+    | Folder -> 23
+    | TypeParameter -> 24
+    | User -> 25
+    | Issue -> 26
+    | Snippet -> 27
+  ;;
+
+  let to_jv x = x |> to_int |> Jv.of_int
 end
 
 module Text_model = struct
@@ -106,12 +139,80 @@ module Completion_item_label = struct
   ;;
 end
 
+module Range = struct
+  type t =
+    { start_line_number : int
+    ; start_column : int
+    ; end_line_number : int
+    ; end_column : int
+    }
+
+  let to_jv { start_line_number; start_column; end_line_number; end_column } =
+    Jv.obj
+      [| "startLineNumber", Jv.of_int start_line_number
+       ; "startColumn", Jv.of_int start_column
+       ; "endLineNumber", Jv.of_int end_line_number
+       ; "endColumn", Jv.of_int end_column
+      |]
+  ;;
+end
+
+module CompletionItemInsertTextRule = struct
+  type t =
+    | KeepWhitespace
+    | InsertAsSnippet
+
+  let to_int = function KeepWhitespace -> 1 | InsertAsSnippet -> 4
+  let to_jv x = x |> to_int |> Jv.of_int
+end
+
 module Completion_item = struct
   type t =
-    { label : (string, Completion_item_label.t) Either.t
-    ; kind : Completion_item_kind.t (* TODO tags, documentation *)
+    { (* TODO tags, etc *)
+      label : (string, Completion_item_label.t) Either.t
+    ; kind : Completion_item_kind.t
     ; detail : string option
+    ; insert_text : string
+    ; insert_text_rules : CompletionItemInsertTextRule.t option
+    ; range : Range.t option
+    ; documentation : string option
     }
+
+  (*
+  let mk ?detail ~label ~kind ~insert_text ~range () =
+    { label; kind; detail; insert_text; range }
+  ;;
+     *)
+
+  let to_jv { label; kind; detail; insert_text; insert_text_rules; range; documentation } =
+    let label =
+      match label with
+      | Left str -> Jv.of_string str
+      | Right item_label -> Completion_item_label.to_jv item_label
+    in
+    let obj =
+      Jv.obj
+        [| "label", label
+         ; "kind", Completion_item_kind.to_jv kind
+         ; "insertText", Jv.of_string insert_text
+        |]
+    in
+    set_opt ~f:Range.to_jv obj "range" range;
+    set_opt ~f:CompletionItemInsertTextRule.to_jv obj "insertTextRules" insert_text_rules;
+    set_opt_str obj "detail" detail;
+    set_opt_str obj "documentation" documentation;
+    obj
+  ;;
+end
+
+module Completion_list = struct
+  type t = Completion_item.t list
+
+  let to_jv items =
+    let obj = Jv.obj [||] in
+    Jv.set obj "suggestions" (Jv.of_list Completion_item.to_jv items);
+    obj
+  ;;
 end
 
 module Completion_item_provider = struct
@@ -122,12 +223,15 @@ module Completion_item_provider = struct
         -> Position.t
         -> Completion_context.t
         -> Cancellation_token.t
-        -> Completion_item.t
+        -> Completion_list.t
           (* ; resolve_completion_item *)
     }
 
-  let to_jv { trigger_characters; provide_completion_items = _ } =
-    let obj = Jv.obj [||] in
+  let to_jv { trigger_characters; provide_completion_items } =
+    let provide_completion_items model pos ctx tok =
+      provide_completion_items model pos ctx tok |> Completion_list.to_jv
+    in
+    let obj = Jv.obj [| "provideCompletionItems", Jv.repr provide_completion_items |] in
     set_opt_str obj "triggerCharacters" trigger_characters;
     obj
   ;;

@@ -76,12 +76,43 @@ module Completion_item_label : sig
   val to_jv : t -> Jv.t
 end
 
+module Range : sig
+  type t =
+    { start_line_number : int
+    ; start_column : int
+    ; end_line_number : int
+    ; end_column : int
+    }
+
+  val to_jv : t -> Jv.t
+end
+
+module CompletionItemInsertTextRule : sig
+  type t =
+    | KeepWhitespace
+    | InsertAsSnippet
+
+  val to_jv : t -> Jv.t
+end
+
 module Completion_item : sig
   type t =
     { label : (string, Completion_item_label.t) Either.t
-    ; kind : Completion_item_kind.t (* TODO tags, documentation *)
+    ; kind : Completion_item_kind.t
     ; detail : string option
+    ; insert_text : string
+    ; insert_text_rules : CompletionItemInsertTextRule.t option
+    ; range : Range.t option
+    ; documentation : string option
     }
+
+  val to_jv : t -> Jv.t
+end
+
+module Completion_list : sig
+  type t = Completion_item.t list
+
+  val to_jv : t -> Jv.t
 end
 
 module Completion_item_provider : sig
@@ -92,7 +123,7 @@ module Completion_item_provider : sig
         -> Position.t
         -> Completion_context.t
         -> Cancellation_token.t
-        -> Completion_item.t
+        -> Completion_list.t
           (* ; resolve_completion_item *)
     }
 

@@ -313,16 +313,16 @@ let example2 =
         ; Language_rule.mk ~regex:(Right {|'|}) ~action:(Short "string.invalid") ()
         ] )
     ; ( "comment"
-      , [ Language_rule.mk ~regex:(Right {|[^/*]+|}) ~action:(Short "comment") ()
+      , [ Language_rule.mk ~regex:(Right {|[^\/*]+|}) ~action:(Short "comment") ()
         ; Language_rule.mk
-            ~regex:(Right {|/*|})
+            ~regex:(Right {|\/\*|})
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@push" ())
             ()
         ; Language_rule.mk
             ~regex:(Left {|\*/|})
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@pop" ())
             ()
-        ; Language_rule.mk ~regex:(Right {|[/*]|}) ~action:(Short "comment") ()
+        ; Language_rule.mk ~regex:(Right {|[\/*]|}) ~action:(Short "comment") ()
         ] )
     ; ( "string"
       , [ Language_rule.mk ~regex:(Right {|[^\\"]+|}) ~action:(Short "string") ()
@@ -344,7 +344,7 @@ let example2 =
     ; ( "whitespace"
       , [ Language_rule.mk ~regex:(Right {|[ \t\r\n]+|}) ~action:(Short "white") ()
         ; Language_rule.mk
-            ~regex:(Right {|/*|})
+            ~regex:(Right {|\/\*|})
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@comment" ())
             ()
         ; Language_rule.mk ~regex:(Right {|//.*$|}) ~action:(Short "comment") ()

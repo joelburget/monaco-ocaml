@@ -1,8 +1,6 @@
 open Brr
 open Helpers
 
-let monaco () = Jv.get Jv.global "monaco"
-
 module Render_line_numbers_type = struct
   type t =
     | Custom

@@ -79,17 +79,6 @@ module Text_model = struct
              id : string }
 end
 
-module Position = struct
-  type t =
-    { line_number : int
-    ; column : int
-    }
-
-  let to_jv { line_number; column } =
-    Jv.obj [| "lineNumber", Jv.of_int line_number; "column", Jv.of_int column |]
-  ;;
-end
-
 module Completion_trigger_kind = struct
   type t =
     | Invoke
@@ -139,6 +128,7 @@ module Completion_item_label = struct
   ;;
 end
 
+(*
 module Range = struct
   type t =
     { start_line_number : int
@@ -156,6 +146,7 @@ module Range = struct
       |]
   ;;
 end
+   *)
 
 module CompletionItemInsertTextRule = struct
   type t =

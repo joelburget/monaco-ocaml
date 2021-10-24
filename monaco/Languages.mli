@@ -35,15 +35,6 @@ module Text_model : sig
              id : string }
 end
 
-module Position : sig
-  type t =
-    { line_number : int
-    ; column : int
-    }
-
-  val to_jv : t -> Jv.t
-end
-
 module Completion_trigger_kind : sig
   type t =
     | Invoke
@@ -76,6 +67,7 @@ module Completion_item_label : sig
   val to_jv : t -> Jv.t
 end
 
+(*
 module Range : sig
   type t =
     { start_line_number : int
@@ -86,6 +78,7 @@ module Range : sig
 
   val to_jv : t -> Jv.t
 end
+   *)
 
 module CompletionItemInsertTextRule : sig
   type t =

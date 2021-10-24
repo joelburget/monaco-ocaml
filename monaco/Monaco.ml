@@ -6,3 +6,5 @@ let init cb =
 module Languages = Languages
 module Editor = Editor
 module Minimap_options = Minimap_options
+module KeyMod = KeyMod
+module KeyCode = KeyCode

@@ -14,6 +14,10 @@ let set_opt_int obj name opt_val =
   match opt_val with None -> () | Some value -> Jv.Int.set obj name value
 ;;
 
+let set_opt_float obj name opt_val =
+  match opt_val with None -> () | Some value -> Jv.Float.set obj name value
+;;
+
 let set_opt_list ~f obj name opt_val =
   match opt_val with None -> () | Some value -> Jv.set obj name (Jv.of_list f value)
 ;;

@@ -56,5 +56,28 @@ let () =
               { trigger_characters = Some "xyz"; provide_completion_items }
           in
           Languages.register_completion_item_provider ~language_id item_provider;
-          ignore @@ Editor.create ~value:initial_content ~language:language_id container))
+          let editor =
+            Editor.create ~value:initial_content ~language:language_id container
+          in
+          ignore
+          @@ Editor.add_command
+               editor
+               ~keybinding:2 (* tab *)
+               (* ~context:"myCondition1 && myCondition2" *)
+               (fun _ -> Console.(log [ str "my command is executing!" ]));
+          let ctrl = KeyMod.ctrl_cmd () in
+          ignore
+          @@ Editor.add_action
+               ~id:"my-unique-id"
+               ~label:"My Label!!!"
+               ~keybindings:
+                 [ (ctrl lor KeyCode.(to_int F10))
+                 ; KeyMod.chord
+                     (ctrl lor KeyCode.(to_int KEY_K))
+                     (ctrl lor KeyCode.(to_int KEY_M))
+                 ]
+               ~context_menu_group_id:"navigation"
+               ~context_menu_order:1.5
+               ~run:(Jv.repr (fun ed -> Console.(log [ str "running in editor", ed ])))
+               editor))
 ;;

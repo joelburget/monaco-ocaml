@@ -72,6 +72,9 @@ val add_action
   -> t
   -> Disposable.t
 
+val focus : t -> unit
+val layout : ?dimension:Dimension.t -> t -> unit
+
 (* TODO:
   * updateOptions(newOptions: IEditorOptions & IGlobalEditorOptions): void;
   * addAction(descriptor: IActionDescriptor): IDisposable;

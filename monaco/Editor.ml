@@ -93,3 +93,12 @@ let add_action
   set_opt_float descriptor "contextMenuOrder" context_menu_order;
   Jv.call editor "addAction" [| descriptor |]
 ;;
+
+let focus editor = ignore @@ Jv.call editor "focus" [||]
+
+let layout ?dimension editor =
+  let args =
+    match dimension with Some dimension -> [| Dimension.to_jv dimension |] | None -> [||]
+  in
+  ignore @@ Jv.call editor "layout" args
+;;

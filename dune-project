@@ -1,37 +1,22 @@
 (lang dune 2.8)
-
 (name monaco)
-
 (version 0.0.1)
-
 (generate_opam_files true)
-
 (license ISC)
-
 (authors "Joel Burget")
-
 (maintainers "joelburget@gmail.com")
-
 (package
  (name monaco)
  (synopsis "Bindings for Microsoft's Monaco editor")
  (description "TODO")
- (depends
-  (brr
-   (>= 0.0.1))))
-
+ (depends (either (>= 1.0.0)) (brr (>= 0.0.1))))
 (package
  (name require)
  (synopsis "Simple JavaScript loader bindings")
  (description "TODO")
- (depends
-  (brr
-   (>= 0.0.1))))
-
+ (depends (brr (>= 0.0.1))))
 (package
  (name monarch)
  (synopsis "Bindings for Microsoft's Monarch syntax highlighter library")
  (description "TODO")
- (depends
-  (brr
-   (>= 0.0.1))))
+ (depends (either (>= 1.0.0)) (brr (>= 0.0.1))))

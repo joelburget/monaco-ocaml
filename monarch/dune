@@ -1,4 +1,4 @@
 (library
  (name monarch)
  (public_name monarch)
- (libraries brr))
+ (libraries brr either))

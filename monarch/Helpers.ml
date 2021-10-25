@@ -35,6 +35,6 @@ end
 
 module Extend (Variant : Variant_s) = struct
   let set_opt obj =
-    set_opt ~f:(fun value -> Jv.of_string (Variant.to_string value)) obj Variant.name
+    set_opt ~f:(fun value -> value |> Variant.to_string |> Jv.of_string) obj Variant.name
   ;;
 end

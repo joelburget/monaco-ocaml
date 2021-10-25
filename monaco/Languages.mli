@@ -80,21 +80,25 @@ module Range : sig
 end
    *)
 
-module CompletionItemInsertTextRule : sig
+module Completion_item_insert_text_rule : sig
   type t =
-    | KeepWhitespace
-    | InsertAsSnippet
+    | Keep_whitespace
+    | Insert_as_snippet
 
   val to_jv : t -> Jv.t
 end
 
 module Completion_item : sig
+  type label =
+    | String_label of string
+    | Completion_item_label of Completion_item_label.t
+
   type t =
-    { label : (string, Completion_item_label.t) Either.t
+    { label : label
     ; kind : Completion_item_kind.t
     ; detail : string option
     ; insert_text : string
-    ; insert_text_rules : CompletionItemInsertTextRule.t option
+    ; insert_text_rules : Completion_item_insert_text_rule.t option
     ; range : Range.t option
     ; documentation : string option
     }

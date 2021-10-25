@@ -148,23 +148,27 @@ module Range = struct
 end
    *)
 
-module CompletionItemInsertTextRule = struct
+module Completion_item_insert_text_rule = struct
   type t =
-    | KeepWhitespace
-    | InsertAsSnippet
+    | Keep_whitespace
+    | Insert_as_snippet
 
-  let to_int = function KeepWhitespace -> 1 | InsertAsSnippet -> 4
+  let to_int = function Keep_whitespace -> 1 | Insert_as_snippet -> 4
   let to_jv x = x |> to_int |> Jv.of_int
 end
 
 module Completion_item = struct
+  type label =
+    | String_label of string
+    | Completion_item_label of Completion_item_label.t
+
   type t =
     { (* TODO tags, etc *)
-      label : (string, Completion_item_label.t) Either.t
+      label : label
     ; kind : Completion_item_kind.t
     ; detail : string option
     ; insert_text : string
-    ; insert_text_rules : CompletionItemInsertTextRule.t option
+    ; insert_text_rules : Completion_item_insert_text_rule.t option
     ; range : Range.t option
     ; documentation : string option
     }
@@ -178,8 +182,8 @@ module Completion_item = struct
   let to_jv { label; kind; detail; insert_text; insert_text_rules; range; documentation } =
     let label =
       match label with
-      | Left str -> Jv.of_string str
-      | Right item_label -> Completion_item_label.to_jv item_label
+      | String_label str -> Jv.of_string str
+      | Completion_item_label item_label -> Completion_item_label.to_jv item_label
     in
     let obj =
       Jv.obj
@@ -189,7 +193,11 @@ module Completion_item = struct
         |]
     in
     set_opt ~f:Range.to_jv obj "range" range;
-    set_opt ~f:CompletionItemInsertTextRule.to_jv obj "insertTextRules" insert_text_rules;
+    set_opt
+      ~f:Completion_item_insert_text_rule.to_jv
+      obj
+      "insertTextRules"
+      insert_text_rules;
     set_opt_str obj "detail" detail;
     set_opt_str obj "documentation" documentation;
     obj

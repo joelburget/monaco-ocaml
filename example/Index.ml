@@ -21,7 +21,7 @@ let () =
           Languages.set_monarch_tokens_provider ~language_id Monarch.example2;
           let provide_completion_items _model _position _ctx _tok =
             Languages.Completion_item.
-              [ { label = Left "simpleText"
+              [ { label = String_label "simpleText"
                 ; kind = Text
                 ; detail = None
                 ; insert_text = "simpleText"
@@ -29,15 +29,15 @@ let () =
                 ; range = None
                 ; documentation = None
                 }
-              ; { label = Left "testing"
+              ; { label = String_label "testing"
                 ; kind = Keyword
                 ; detail = None
                 ; insert_text = "testing(${1:condition})"
-                ; insert_text_rules = Some InsertAsSnippet
+                ; insert_text_rules = Some Insert_as_snippet
                 ; range = None
                 ; documentation = None
                 }
-              ; { label = Left "ifelse"
+              ; { label = String_label "ifelse"
                 ; kind = Snippet
                 ; detail = None
                 ; insert_text = {|if (${1:condition}) {
@@ -45,7 +45,7 @@ let () =
 } else {
 
 }|}
-                ; insert_text_rules = Some InsertAsSnippet
+                ; insert_text_rules = Some Insert_as_snippet
                 ; range = None
                 ; documentation = Some "If-Else Statement"
                 }

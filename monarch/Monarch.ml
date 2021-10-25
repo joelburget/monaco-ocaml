@@ -101,6 +101,17 @@ module Language_rule = struct
   ;;
 end
 
+let language_rule ?regex ?string ?action ?include' () =
+  let regex =
+    match regex, string with
+    | Some regex, None -> Some (Language_rule.Regex regex)
+    | None, Some string -> Some (String string)
+    | None, None -> None
+    | Some _, Some _ -> failwith "language_rule: regex and string are mutually exclusive"
+  in
+  Language_rule.mk ?regex ?action ?include' ()
+;;
+
 (* TODO: indexable other keys, includeLF *)
 type t =
   { definitions : (string * Jv.t) list
@@ -134,16 +145,10 @@ let to_jv { definitions; brackets; default_token; ignore_case; start; tokenizer 
 let example1 =
   mk
     [ ( "root"
-      , [ Language_rule.mk ~regex:(Regex {|\[error.*|}) ~action:(Short "custom-error") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\[notice.*|})
-            ~action:(Short "custom-notice")
-            ()
-        ; Language_rule.mk ~regex:(Regex {|\[info.*|}) ~action:(Short "custom-info") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\[[a-zA-Z 0-9:]+\]|})
-            ~action:(Short "custom-date")
-            ()
+      , [ language_rule ~regex:{|\[error.*|} ~action:(Short "custom-error") ()
+        ; language_rule ~regex:{|\[notice.*|} ~action:(Short "custom-notice") ()
+        ; language_rule ~regex:{|\[info.*|} ~action:(Short "custom-info") ()
+        ; language_rule ~regex:{|\[[a-zA-Z 0-9:]+\]|} ~action:(Short "custom-date") ()
         ] )
     ]
 ;;
@@ -245,8 +250,8 @@ let example2 =
       ]
     [ ( "root"
       , [ (* identifiers and keywords *)
-          Language_rule.mk
-            ~regex:(Regex {|[a-z_$][\w$]*|})
+          language_rule
+            ~regex:{|[a-z_$][\w$]*|}
             ~action:
               (Language_action.mk_expanded
                  ~cases:
@@ -256,28 +261,22 @@ let example2 =
                    ]
                  ())
             ()
-        ; Language_rule.mk
-            ~regex:(Regex {|[A-Z][\w\$]*|})
-            ~action:(Short "type.identifier")
-            ()
+        ; language_rule ~regex:{|[A-Z][\w\$]*|} ~action:(Short "type.identifier") ()
         ; (* whitespace *)
-          Language_rule.mk ~include':"@whitespace" ()
+          language_rule ~include':"@whitespace" ()
         ; (* delimiters and operators *)
-          Language_rule.mk ~regex:(Regex {|[{}()\[\]]|}) ~action:(Short "@brackets") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|[<>](?!@symbols)|})
-            ~action:(Short "@brackets")
-            ()
-        ; Language_rule.mk
-            ~regex:(Regex {|@symbols|})
+          language_rule ~regex:{|[{}()\[\]]|} ~action:(Short "@brackets") ()
+        ; language_rule ~regex:{|[<>](?!@symbols)|} ~action:(Short "@brackets") ()
+        ; language_rule
+            ~regex:{|@symbols|}
             ~action:
               (Language_action.mk_expanded
                  ~cases:[ "@operators", Short "operator"; "@default", Short "" ]
                  ())
             ()
         ; (* annotations *)
-          Language_rule.mk
-            ~regex:(Regex {|@\s*[a-zA-Z_\$][\w\$]*|})
+          language_rule
+            ~regex:{|@\s*[a-zA-Z_\$][\w\$]*|}
             ~action:
               (Language_action.mk_expanded
                  ~token:"annotation"
@@ -285,24 +284,18 @@ let example2 =
                  ())
             ()
         ; (* numbers *)
-          Language_rule.mk
-            ~regex:(Regex {|\d*\.\d+([eE][\-+]?\d+)?|})
+          language_rule
+            ~regex:{|\d*\.\d+([eE][\-+]?\d+)?|}
             ~action:(Short "number.float")
             ()
-        ; Language_rule.mk
-            ~regex:(Regex {|0[xX][0-9a-fA-F]+|})
-            ~action:(Short "number.hex")
-            ()
-        ; Language_rule.mk ~regex:(Regex {|\d+|}) ~action:(Short "number") ()
+        ; language_rule ~regex:{|0[xX][0-9a-fA-F]+|} ~action:(Short "number.hex") ()
+        ; language_rule ~regex:{|\d+|} ~action:(Short "number") ()
         ; (* delimiter: after number because of .\d floats *)
-          Language_rule.mk ~regex:(Regex {|[;,.]|}) ~action:(Short "delimiter") ()
+          language_rule ~regex:{|[;,.]|} ~action:(Short "delimiter") ()
         ; (* strings *)
-          Language_rule.mk
-            ~regex:(Regex {|"([^"\\]|\\.)*$|})
-            ~action:(Short "string.invalid")
-            ()
-        ; Language_rule.mk
-            ~regex:(Regex {|"|})
+          language_rule ~regex:{|"([^"\\]|\\.)*$|} ~action:(Short "string.invalid") ()
+        ; language_rule
+            ~regex:{|"|}
             ~action:
               (Language_action.mk_expanded
                  ~token:"string.quote"
@@ -311,31 +304,28 @@ let example2 =
                  ())
             ()
         ; (* characters *)
-          Language_rule.mk ~regex:(Regex {|'[^\\']'|}) ~action:(Short "string") ()
-        ; Language_rule.mk ~regex:(Regex {|(')(@escapes)(')|}) ~action:(Short "string") ()
-        ; Language_rule.mk ~regex:(Regex {|'|}) ~action:(Short "string.invalid") ()
+          language_rule ~regex:{|'[^\\']'|} ~action:(Short "string") ()
+        ; language_rule ~regex:{|(')(@escapes)(')|} ~action:(Short "string") ()
+        ; language_rule ~regex:{|'|} ~action:(Short "string.invalid") ()
         ] )
     ; ( "comment"
-      , [ Language_rule.mk ~regex:(Regex {|[^\/*]+|}) ~action:(Short "comment") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\/\*|})
+      , [ language_rule ~regex:{|[^\/*]+|} ~action:(Short "comment") ()
+        ; language_rule
+            ~regex:{|\/\*|}
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@push" ())
             ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\*/|})
+        ; language_rule
+            ~regex:{|\*/|}
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@pop" ())
             ()
-        ; Language_rule.mk ~regex:(Regex {|[\/*]|}) ~action:(Short "comment") ()
+        ; language_rule ~regex:{|[\/*]|} ~action:(Short "comment") ()
         ] )
     ; ( "string"
-      , [ Language_rule.mk ~regex:(Regex {|[^\\"]+|}) ~action:(Short "string") ()
-        ; Language_rule.mk ~regex:(Regex {|@escapes|}) ~action:(Short "string.escape") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\\.|})
-            ~action:(Short "string.escape.invalid")
-            ()
-        ; Language_rule.mk
-            ~regex:(Regex {|"|})
+      , [ language_rule ~regex:{|[^\\"]+|} ~action:(Short "string") ()
+        ; language_rule ~regex:{|@escapes|} ~action:(Short "string.escape") ()
+        ; language_rule ~regex:{|\\.|} ~action:(Short "string.escape.invalid") ()
+        ; language_rule
+            ~regex:{|"|}
             ~action:
               (Language_action.mk_expanded
                  ~token:"string.quote"
@@ -345,12 +335,12 @@ let example2 =
             ()
         ] )
     ; ( "whitespace"
-      , [ Language_rule.mk ~regex:(Regex {|[ \t\r\n]+|}) ~action:(Short "white") ()
-        ; Language_rule.mk
-            ~regex:(Regex {|\/\*|})
+      , [ language_rule ~regex:{|[ \t\r\n]+|} ~action:(Short "white") ()
+        ; language_rule
+            ~regex:{|\/\*|}
             ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@comment" ())
             ()
-        ; Language_rule.mk ~regex:(Regex {|//.*$|}) ~action:(Short "comment") ()
+        ; language_rule ~regex:{|//.*$|} ~action:(Short "comment") ()
         ] )
     ]
 ;;

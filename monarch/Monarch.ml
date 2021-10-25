@@ -41,22 +41,6 @@ module Language_action = struct
         ; log : string option
         }
 
-  let mk_expanded
-      ?group
-      ?cases
-      ?token
-      ?next
-      ?switch_to
-      ?go_back
-      ?bracket
-      ?next_embedded
-      ?log
-      ()
-    =
-    Expanded
-      { group; cases; token; next; switch_to; go_back; bracket; next_embedded; log }
-  ;;
-
   let rec to_jv = function
     | Short name -> Jv.of_string name
     | Expanded
@@ -74,6 +58,22 @@ module Language_action = struct
       obj
   ;;
 end
+
+let language_action
+    ?group
+    ?cases
+    ?token
+    ?next
+    ?switch_to
+    ?go_back
+    ?bracket
+    ?next_embedded
+    ?log
+    ()
+  =
+  Language_action.Expanded
+    { group; cases; token; next; switch_to; go_back; bracket; next_embedded; log }
+;;
 
 module Language_rule = struct
   type regex =
@@ -253,7 +253,7 @@ let example2 =
           language_rule
             ~regex:{|[a-z_$][\w$]*|}
             ~action:
-              (Language_action.mk_expanded
+              (language_action
                  ~cases:
                    [ "@typeKeywords", Short "keyword"
                    ; "@keywords", Short "keyword"
@@ -270,18 +270,14 @@ let example2 =
         ; language_rule
             ~regex:{|@symbols|}
             ~action:
-              (Language_action.mk_expanded
+              (language_action
                  ~cases:[ "@operators", Short "operator"; "@default", Short "" ]
                  ())
             ()
         ; (* annotations *)
           language_rule
             ~regex:{|@\s*[a-zA-Z_\$][\w\$]*|}
-            ~action:
-              (Language_action.mk_expanded
-                 ~token:"annotation"
-                 ~log:"annotation token: $0"
-                 ())
+            ~action:(language_action ~token:"annotation" ~log:"annotation token: $0" ())
             ()
         ; (* numbers *)
           language_rule
@@ -297,11 +293,7 @@ let example2 =
         ; language_rule
             ~regex:{|"|}
             ~action:
-              (Language_action.mk_expanded
-                 ~token:"string.quote"
-                 ~bracket:"@open"
-                 ~next:"@string"
-                 ())
+              (language_action ~token:"string.quote" ~bracket:"@open" ~next:"@string" ())
             ()
         ; (* characters *)
           language_rule ~regex:{|'[^\\']'|} ~action:(Short "string") ()
@@ -312,11 +304,11 @@ let example2 =
       , [ language_rule ~regex:{|[^\/*]+|} ~action:(Short "comment") ()
         ; language_rule
             ~regex:{|\/\*|}
-            ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@push" ())
+            ~action:(language_action ~token:"comment" ~next:"@push" ())
             ()
         ; language_rule
             ~regex:{|\*/|}
-            ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@pop" ())
+            ~action:(language_action ~token:"comment" ~next:"@pop" ())
             ()
         ; language_rule ~regex:{|[\/*]|} ~action:(Short "comment") ()
         ] )
@@ -327,18 +319,14 @@ let example2 =
         ; language_rule
             ~regex:{|"|}
             ~action:
-              (Language_action.mk_expanded
-                 ~token:"string.quote"
-                 ~bracket:"@close"
-                 ~next:"@pop"
-                 ())
+              (language_action ~token:"string.quote" ~bracket:"@close" ~next:"@pop" ())
             ()
         ] )
     ; ( "whitespace"
       , [ language_rule ~regex:{|[ \t\r\n]+|} ~action:(Short "white") ()
         ; language_rule
             ~regex:{|\/\*|}
-            ~action:(Language_action.mk_expanded ~token:"comment" ~next:"@comment" ())
+            ~action:(language_action ~token:"comment" ~next:"@comment" ())
             ()
         ; language_rule ~regex:{|//.*$|} ~action:(Short "comment") ()
         ] )
